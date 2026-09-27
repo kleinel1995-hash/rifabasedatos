@@ -1,0 +1,18 @@
+{
+  "name": "rifas-luxury-rd",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plataforma de rifas para Rifas Luxury RD",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^16.4.7",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "mysql2": "^3.14.3"
+  }
+}

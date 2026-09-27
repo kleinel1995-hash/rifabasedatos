@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Participar | Rifas Luxury RD</title><link rel="stylesheet" href="/css/styles.css"></head>
+<body><div class="app"><header class="header"><a class="back" href="/">‹ Volver</a><div class="logo">RIFAS LUXURY <span>RD</span></div></header>
+<main><section class="raffleBody" style="border:1px solid var(--line);border-radius:22px">
+<div class="eyebrow">PARTICIPACIÓN</div><h1 id="title">Cargando...</h1><p id="desc" class="hint"></p>
+<h3>Selecciona cantidad</h3><div id="packs" class="raffleList"></div>
+<div style="margin-top:18px"><label>O escribe una cantidad</label><input id="qty" type="number" min="2" max="10000" value="2" oninput="updateTotal()"></div>
+<h3 id="total">Total: RD$ 200.00</h3>
+<form id="form" enctype="multipart/form-data">
+<label>Nombre</label><input name="nombre" required>
+<label>Teléfono (WhatsApp)</label><input name="telefono" inputmode="numeric" required>
+<label>Correo electrónico</label><input name="correo" type="email">
+<label>Banco</label><select id="bank" name="banco"></select>
+<label>Referencia (opcional)</label><input name="referencia">
+<label>Comprobante</label><input name="comprobante" type="file" accept=".jpg,.jpeg,.png,.pdf" required>
+<label style="display:flex;gap:8px;margin:15px 0"><input name="consentimiento" value="1" type="checkbox" required style="width:auto"> Acepto los términos de participación.</label>
+<button class="btn primary full">ENVIAR SOLICITUD DE COMPRA →</button>
+</form><div id="msg" class="msg"></div>
+</section></main></div>
+<script>
+const id=new URLSearchParams(location.search).get('rifa');let price=100;
+async function init(){
+ const r=await fetch('/api/rifas/'+id).then(x=>x.json()); if(r.error){msg.textContent=r.error;return}
+ title.textContent=r.nombre;desc.textContent=r.descripcion||'';
+ price=Number(r.precio_boleto);qty.value=2;updateTotal();
+ packs.innerHTML=r.paquetes.map(p=>`<button type="button" class="btn ghost" style="margin:4px" onclick="qty.value=${p.cantidad};updateTotal()">${p.nombre} · ${Number(p.precio).toLocaleString('es-DO')} RD$</button>`).join('');
+ bank.innerHTML=r.bancos.map(b=>`<option>${b.banco} · ${b.tipo_cuenta}</option>`).join('');
+}
+function updateTotal(){const n=Math.max(2,Math.min(10000,Number(qty.value||2)));qty.value=n;total.textContent='Total: '+(n*price).toLocaleString('es-DO',{style:'currency',currency:'DOP'});}
+form.addEventListener('submit',async e=>{e.preventDefault();const fd=new FormData(form);fd.append('rifa_id',id);fd.append('cantidad_boletos',qty.value);fd.append('monto',Number(qty.value)*price);const r=await fetch('/api/pagos',{method:'POST',body:fd});const d=await r.json();msg.textContent=d.error||('Solicitud #'+d.pago_id+' recibida. '+d.message);if(r.ok){form.reset();qty.value=2;updateTotal();}});
+init();
+</script></body></html>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Consulta de Boletos | Rifas Luxury RD</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="lookupPage">
+  <div class="lookupCard">
+    <div class="eyebrow">RIFAS LUXURY RD</div>
+    <h1>Selecciona la rifa</h1>
+    <label>Selecciona una rifa...</label>
+    <select id="rifaSelect"></select>
+    <label>Teléfono o # de boleto</label>
+    <input id="searchInput" inputmode="numeric" placeholder="Ej. 8095555555 o 0001">
+    <p class="hint">Teléfono: 10 dígitos. Boleto: número de boleto.</p>
+    <button class="btn primary full" onclick="buscar()">BUSCAR</button>
+    <div id="result" class="result"></div>
+    <a class="back" href="/">← Volver</a>
+  </div>
+</div>
+<script>
+async function load() {
+  const r = await fetch('/api/rifas').then(x=>x.json());
+  rifaSelect.innerHTML = r.map(x=>`<option value="${x.id}">${x.nombre}</option>`).join('');
+}
+async function buscar() {
+  const q = searchInput.value.replace(/\D/g,'');
+  const id = rifaSelect.value;
+  result.className = 'result active';
+  result.innerHTML = 'Buscando...';
+  try {
+    const data = await fetch(`/api/consulta?rifa_id=${encodeURIComponent(id)}&q=${encodeURIComponent(q)}`).then(x=>x.json());
+    if (data.error) throw new Error(data.error);
+    if (!data.boletos.length) {
+      result.innerHTML = '<strong>No encontramos boletos vendidos.</strong>';
+      return;
+    }
+    result.innerHTML = data.boletos.map(b =>
+      `<div class="ticketResult"><b>#${String(b.numero).padStart(4,'0')}</b><span>${b.estado}</span>${b.nombre ? `<small>${b.nombre}</small>`:''}</div>`
+    ).join('');
+  } catch(e) { result.innerHTML = `<strong>${e.message}</strong>`; }
+}
+load();
+</script>
+</body>
+</html>

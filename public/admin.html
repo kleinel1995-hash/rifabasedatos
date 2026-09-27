@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Administración | Rifas Luxury RD</title>
+<link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+<div class="adminPage">
+  <div class="adminCard" id="loginCard">
+    <div class="eyebrow">PANEL PRIVADO</div>
+    <h1>Administración</h1>
+    <input id="email" type="email" placeholder="Correo">
+    <input id="password" type="password" placeholder="Contraseña">
+    <button class="btn primary full" onclick="login()">ENTRAR</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+
+  <div id="dashboard" class="hidden">
+    <header class="adminHeader">
+      <div><b>Rifas Luxury RD</b><small>Panel de administración</small></div>
+      <button class="btn ghost" onclick="logout()">Salir</button>
+    </header>
+    <section>
+      <h2>Pagos pendientes / registrados</h2>
+      <div id="payments" class="payments"></div>
+    </section>
+  </div>
+</div>
+<script>
+const tokenKey='rl_admin_token';
+function esc(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));}
+async function login(){
+  const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email.value,password:password.value})});
+  const d=await r.json();
+  if(!r.ok){loginMsg.textContent=d.error;return;}
+  localStorage.setItem(tokenKey,d.token); showDash();
+}
+function logout(){localStorage.removeItem(tokenKey);location.reload();}
+async function showDash(){
+  const t=localStorage.getItem(tokenKey); if(!t)return;
+  loginCard.classList.add('hidden'); dashboard.classList.remove('hidden');
+  const r=await fetch('/api/admin/pagos',{headers:{Authorization:'Bearer '+t}});
+  if(r.status===401)return logout();
+  const rows=await r.json();
+  payments.innerHTML=rows.map(p=>`
+    <article class="paymentCard">
+      <div><b>${esc(p.nombre)}</b><small>${esc(p.telefono)} · ${esc(p.rifa)}</small></div>
+      <div><strong>RD$ ${Number(p.monto).toLocaleString('es-DO',{minimumFractionDigits:2})}</strong><small>${esc(p.estado)} · ${esc(new Date(p.created_at).toLocaleString())}</small></div>
+      <div class="actions">
+        ${p.comprobante?`<a class="btn ghost" target="_blank" href="/uploads/${encodeURIComponent(p.comprobante)}">COMPROBANTE</a>`:''}
+        ${p.estado==='pendiente'?`<button class="btn primary" onclick="procesar(${p.id},'validar')">VALIDAR</button><button class="btn danger" onclick="procesar(${p.id},'rechazar')">RECHAZAR</button>`:''}
+      </div>
+    </article>`).join('') || '<p>No hay pagos registrados.</p>';
+}
+async function procesar(id,accion){
+  const t=localStorage.getItem(tokenKey);
+  const body=accion==='rechazar'?{notas:'Comprobante rechazado desde el panel.'}:{};
+  const r=await fetch(`/api/admin/pagos/${id}/${accion}`,{method:'POST',headers:{Authorization:'Bearer '+t,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await r.json();
+  if(!r.ok)return alert(d.error);
+  if(d.numeros)alert('Boletos asignados: '+d.numeros.join(', '));
+  showDash();
+}
+showDash();
+</script>
+</body>
+</html>
